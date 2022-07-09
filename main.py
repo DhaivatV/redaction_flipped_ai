@@ -8,7 +8,7 @@ import io
 import re
 import fitz
 import random
-from address import AddressParser, Address
+import os
 
 
 def extract_text_from_pdf(cv_path):
@@ -138,53 +138,91 @@ def redact(cv_path, redaction_list, link_text, name_text, short_links):
         num = random.randint(1,10000000)
         doc.save('Redacted CVs/redacted{}.pdf'.format(num))
 
-def detect_address(data):
-    ap = AddressParser()
-    addr = ap.parse_address(data)
-    return addr
+
+def remove_img_on_pdf(cv_path):
+    doc = fitz.open(cv_path)
+
+    for page in doc:
+        page.wrap_contents()
+        img_list = page.get_images()
+        con_list = page.get_contents()
+
+        # xref 274 is the only /Contents object of the page (could be
+        for i in con_list:
+            c = doc.xref_stream(i)  # read the stream source
+            # print(c)
+            if c != None:
+                for v in img_list:
+
+                    arr = bytes(v[7], 'utf-8')
+                    r = c.find(arr)  # try find the image display command
+                    if r != -1:
+                        cnew = c.replace(arr, b"")
+                        doc.update_stream(i, cnew)
+                        c = doc.xref_stream(i)
+
+        return doc
 
 
 if __name__ == "__main__":
-    cv_path = ("CVs/chandan cv(new) (1).pdf")
-    Data = extract_text_from_pdf(cv_path)
+    cv_path = ("CVs/Resume_testing5.pdf")
+    rdoc = remove_img_on_pdf(cv_path)
+    rdoc.save('no_img_example.PDF')
+
+    new_cv_path = 'no_img_example.PDF'
+    Data = extract_text_from_pdf(new_cv_path)
+
     urls = []
+
+
     EMAIL_REG = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     Contact_REG = r'(?:\+\d{2})?\d{3,4}\D?\d{3}\D?\d{3}'
     Link_REG = r'((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)'
-    NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]'
+    NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]*( [A-Z])?[A-Z][a-z]*'
+
+
     data_list = list(Data.split())
     for item in data_list:
         if ".com" in item or ".in" in item or ".org" in item or ".net" in item or ".co" \
                 in item or ".us" in item or "github.io" in item and "@" not in item:
             urls.append(item)
+
+
+
     try :
-        email_text = search_text(Data, EMAIL_REG).group(0)
-        contact_text = search_text(Data, Contact_REG).group(0)
-        links_text = search_links(Data, Link_REG)
-        name_text = search_name_data(NAME_REG, Data)
-        llink_text = urls
+         email_text = search_text(Data, EMAIL_REG).group(0)
+    except AttributeError as attr:
+        email_text = "no email"
+
+    try:
+         contact_text = search_text(Data, Contact_REG).group(0)
+    except AttributeError as attr:
+        contact_text= "no_contact_number"
+
+    try:
+         links_text = search_links(Data, Link_REG)
+    except AttributeError as attr:
+        links_text = "no_link_text"
+
+    try:
+         name_text = search_name_data(NAME_REG, Data)
+    except AttributeError as attr:
+          name_text = "no_name_text"
+
+    try:
+         llink_text = urls
+    except len(llink_text)<0:
+        llink_text = "urls"
 
 
-    except AttributeError as e:
-        email_text = search_text(Data, EMAIL_REG).group(0)
-        contact_text = search_text(Data, (r'(?:\+?\(?\d{2,3}?\)?\D?)?\d{4}\D?\d{4}')).group(0)
-        print(email_text, contact_text)
-        link_text = search_text(Data, Link_REG).group(0)
-        links_text = search_links(Data, Link_REG)
-        name_text = search_name_data(NAME_REG, Data)
-        llink_text = urls
 
-    redactions=[email_text, contact_text]
+    redactions = [email_text, contact_text]
+    print(redactions, links_text, name_text, llink_text)
+    redact(new_cv_path, redactions, links_text, name_text, llink_text)
+    os.remove("no_img_example.PDF")
 
 
 
-    # print(email_text, contact_text, links_text, name_text, llink_text)
-    # redact(cv_path, redactions, links_text, name_text, llink_text)
-    # #
-    print(detect_address(Data))
-
-    # search1 = re.findall(r'[A-Za-z0-9]+://[A-Za-z0-9%-_]+(/[A-Za-z0-9%-_])*(#|\\?)[A-Za-z0-9%-_&=]*', Data, re.IGNORECASE)
-    # print(search1)
 
 
 
