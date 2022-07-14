@@ -73,8 +73,8 @@ def extract_text_from_pdf(cv_path):
         except PDFSyntaxError:
             return
 
-def search_contact_and_email(data, reg):
 
+def search_contact_and_email(data, reg):
     try:
         if re.search(reg, data, re.IGNORECASE):
             search = re.search(reg, data, re.IGNORECASE)
@@ -82,6 +82,7 @@ def search_contact_and_email(data, reg):
 
     except Exception as e:
         print(f"{e}, error occured while finding contact and email in data")
+
 
 def search_links(data, reg):
     links = []
@@ -93,10 +94,11 @@ def search_links(data, reg):
         return links
 
     except Exception as e:
+        return []
         print(f"{e}, error occured while finding links in data")
 
-def search_name_data (reg, data):
 
+def search_name_data(reg, data):
     try:
         search_name = re.search(reg, data, re.IGNORECASE).group(0).split()
 
@@ -107,73 +109,67 @@ def search_name_data (reg, data):
         return search_name
 
     except Exception as e:
+        return []
         print(f"{e}, error occured while finding name data")
 
-def redact(cv_path, redaction_list, link_text, name_text, short_links):
-        try :
-            doc = fitz.open(cv_path)
-        except Exception as e:
-            print("Incorrect Path in func redact")
-        try:
-            for page in doc:
-                page.wrap_contents()
+
+def redact(cv_path, redaction_list, link_text, name_text, short_links, filename):
+
+        doc = fitz.open(cv_path)
 
 
-                for redact_items in redaction_list:
-                        areas = page.search_for(redact_items)
+        for page in doc:
+            page.wrap_contents()
 
-                        for area in areas:
-                            print(area)
-                            [page.add_redact_annot(area, fill = (0, 0, 0)) for area in areas]
+            for redact_items in redaction_list:
+                areas = page.search_for(redact_items)
 
-                            page.apply_redactions()
+                for area in areas:
 
-        except Exception as e:
-            print(f"Error{e}, cannot redact email and contact number")
+                    [page.add_redact_annot(area, fill=(0, 0, 0)) for area in areas]
 
-        try:
+                    page.apply_redactions()
+
+
+
+
             for items in link_text:
-                    areas = page.search_for(items)
-                    for area in areas:
+                areas = page.search_for(items)
+                for area in areas:
+                    [page.add_redact_annot(area, fill=(0, 0, 0)) for area in areas]
 
-                        [page.add_redact_annot(area, fill = (0, 0, 0)) for area in areas]
+                    page.apply_redactions()
 
-                        page.apply_redactions()
-        except Exception as e:
-            print(f"Error{e}, cannot redact links in data")
 
-        try:
             for name in name_text:
-                    areas = page.search_for(name)
-                    for area in areas:
+                areas = page.search_for(name)
+                for area in areas:
+                    [page.add_redact_annot(area, fill=(0, 0, 0)) for area in areas]
 
-                        [page.add_redact_annot(area, fill = (0, 0, 0)) for area in areas]
+                    page.apply_redactions()
 
-                        page.apply_redactions()
-        except Exception as e:
-            print(f"Error{e}, cannot redact name in data")
 
-        try:
+
             for s_link in short_links:
-                    areas = page.search_for(s_link)
-                    for area in areas:
+                areas = page.search_for(s_link)
+                for area in areas:
+                    [page.add_redact_annot(area, fill=(0, 0, 0)) for area in areas]
 
-                        [page.add_redact_annot(area, fill = (0, 0, 0)) for area in areas]
+                    page.apply_redactions()
 
-                        page.apply_redactions()
-        except Exception as e:
-            print(f"Error{e}, cannot redact other urls in data")
 
-        num = random.randint(1,10000000)
-        try:
-            doc.save('Redacted CVs/redacted{}.pdf'.format(num))
-        except Exception as e:
-            print(f"Error{e},Redacted document not saved")
+        num = random.randint(1, 10000000)
+
+        filename = file_name[:-4]
+        doc.save(f'8th_JULY_REDACTED/{filename}_redacted.pdf')
+        print("Document Redacted")
+
+
 
 def remove_img_on_pdf(cv_path):
     try:
         doc = fitz.open(cv_path)
-    except :
+    except:
         print("Incorrect Path")
 
     try:
@@ -181,7 +177,6 @@ def remove_img_on_pdf(cv_path):
             page.wrap_contents()
             img_list = page.get_images()
             con_list = page.get_contents()
-
 
             for i in con_list:
                 c = doc.xref_stream(i)
@@ -197,91 +192,80 @@ def remove_img_on_pdf(cv_path):
 
         return doc
 
-    except Exception as e :
+    except Exception as e:
         print("Cannot Remove Images")
 
 
 if __name__ == "__main__":
-    cv_path = ("CVs/Resume_testing14.pdf")
-    rdoc = remove_img_on_pdf(cv_path)
-    rdoc.save('no_img_example.PDF')
 
-    new_cv_path = 'no_img_example.PDF'
-    Data = extract_text_from_pdf(new_cv_path)
+    dir_path = r'8th_JULY\\'
 
-    urls = []
+    # list to store files
+    res = []
 
-
-    EMAIL_REG = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    Contact_REG = r'(?:\+\d{2})?\d{3,4}\D?\d{3}\D?\d{3}'
-    Link_REG = r'((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)'
-    NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]*( [A-Z])?[A-Z][a-z]*'
+    # Iterate directory
+    for path in os.listdir(dir_path):
+        # check if current path is a file
+        if os.path.isfile(os.path.join(dir_path, path)):
+            res.append(path)
 
 
-    data_list = list(Data.split())
-    for item in data_list:
-        if ".com" in item or ".in" in item or ".org" in item or ".net" in item or ".co" \
-                in item or ".us" in item or "github.io" in item and "@" not in item:
-            urls.append(item)
+    for item in res[0:80] :
+        cv_path = (f'8th_JULY\\{item}')
+        file_name = item
+        rdoc = remove_img_on_pdf(cv_path)
+        print(cv_path)
+        rdoc.save(f'No_Img.pdf')
 
+        new_cv_path = "No_Img.pdf"
+        print(new_cv_path)
+        print(file_name)
+        Data = extract_text_from_pdf(new_cv_path)
 
+        urls = []
 
-    try :
-         email_text = search_contact_and_email(Data, EMAIL_REG).group(0)
-    except AttributeError as attr:
-        email_text = "no email"
+        EMAIL_REG = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        Contact_REG = r'(?:\+\d{2})?\d{3,4}\D?\d{3}\D?\d{3}'
+        Link_REG = r'((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)'
+        NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]*( [A-Z])?[A-Z][a-z]*'
 
-    try:
-         contact_text = search_contact_and_email(Data, Contact_REG).group(0)
-    except AttributeError as attr:
-        contact_text= "no_contact_number"
+        data_list = list(Data.split())
+        for item in data_list:
+            if ".com" in item or ".in" in item or ".org" in item or ".net" in item or ".co" \
+                    in item or ".us" in item or "github.io" in item and "@" in item:
+                urls.append(item)
 
-    try:
-         links_text = search_links(Data, Link_REG)
-    except AttributeError as attr:
-        links_text = "no_link_text"
+        try:
+            email_text = search_contact_and_email(Data, EMAIL_REG).group(0)
+        except AttributeError as attr:
+            email_text = "no email"
 
-    try:
-         name_text = search_name_data(NAME_REG, Data)
-    except AttributeError as attr:
-          name_text = "no_name_text"
+        try:
+            contact_text = search_contact_and_email(Data, Contact_REG).group(0)
+        except AttributeError as attr:
+            contact_text = "no_contact_number"
 
-    try:
-         llink_text = urls
-    except len(llink_text)<0:
-        llink_text = "urls"
+        try:
+            links_text = search_links(Data, Link_REG)
+        except AttributeError as attr:
+            links_text = "no_link_text"
 
+        try:
+            name_text = search_name_data(NAME_REG, Data)
+        except AttributeError as attr:
+            name_text = ["no_name_text"]
 
+        try:
+            llink_text = urls
+        except len(llink_text) < 0:
+            llink_text = "urls"
 
-    redactions = [email_text, contact_text]
-    print(email_text, contact_text, links_text, name_text, llink_text)
+        redactions = [email_text, contact_text]
+        print(email_text, contact_text, links_text, name_text, llink_text)
 
-    try:
-        redact(new_cv_path, redactions, links_text, name_text, llink_text)
-        os.remove("no_img_example.PDF")
-        print(f'{cv_path[4:]} has been redacted')
-    except:
-        print("pdf not redacted")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        try:
+            redact(new_cv_path, redactions, links_text, name_text, llink_text, file_name)
+            os.remove("no_img_example.PDF")
+            print(f'{cv_path[9:]} has been redacted')
+        except:
+            print("pdf not redacted")
