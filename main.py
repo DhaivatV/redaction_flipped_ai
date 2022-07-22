@@ -1,3 +1,5 @@
+import time
+
 from pdfminer.converter import TextConverter
 from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.pdfinterp import PDFResourceManager
@@ -9,7 +11,7 @@ import re
 import fitz
 import random
 import os
-
+import shutil
 
 def extract_text_from_pdf(cv_path):
     if not isinstance(cv_path, io.BytesIO):
@@ -161,7 +163,7 @@ def redact(cv_path, redaction_list, link_text, name_text, short_links, filename)
         num = random.randint(1, 10000000)
 
         filename = file_name[:-4]
-        doc.save(f'8th_JULY_REDACTED/{filename}_redacted.pdf')
+        doc.save(f'20th_july_redacted2/{filename}_redacted.pdf')
         print("Document Redacted")
 
 
@@ -198,74 +200,88 @@ def remove_img_on_pdf(cv_path):
 
 if __name__ == "__main__":
 
-    dir_path = r'8th_JULY\\'
+    # try :
 
-    # list to store files
-    res = []
+        dir_path = r'Downloaded_CVs_20th_July\\'
 
-    # Iterate directory
-    for path in os.listdir(dir_path):
-        # check if current path is a file
-        if os.path.isfile(os.path.join(dir_path, path)):
-            res.append(path)
+        # list to store files
+        res = []
+
+        # Iterate directory
+        for path in os.listdir(dir_path):
+            # check if current path is a file
+            if os.path.isfile(os.path.join(dir_path, path)):
+                res.append(path)
 
 
-    for item in res[0:80] :
-        cv_path = (f'8th_JULY\\{item}')
-        file_name = item
-        rdoc = remove_img_on_pdf(cv_path)
-        print(cv_path)
-        rdoc.save(f'No_Img.pdf')
+        for item in res :
+            cv_path = (f'Downloaded_CVs_20th_July\\{item}')
+            file_name = item
+            rdoc = remove_img_on_pdf(cv_path)
+            print(cv_path)
+            rdoc.save(f'No_Img.pdf')
 
-        new_cv_path = "No_Img.pdf"
-        print(new_cv_path)
-        print(file_name)
-        Data = extract_text_from_pdf(new_cv_path)
+            new_cv_path = "No_Img.pdf"
+            print(new_cv_path)
+            print(file_name)
+            Data = extract_text_from_pdf(new_cv_path)
 
-        urls = []
+            urls = []
 
-        EMAIL_REG = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        Contact_REG = r'(?:\+\d{2})?\d{3,4}\D?\d{3}\D?\d{3}'
-        Link_REG = r'((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)'
-        NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]*( [A-Z])?[A-Z][a-z]*'
+            EMAIL_REG = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+            Contact_REG = r'(?:\+\d{2})?\d{3,4}\D?\d{3}\D?\d{3}'
+            Link_REG = r'((https?):((//)|(\\\\))+([\w\d:#@%/;$()~_?\+-=\\\.&](#!)?)*)'
+            NAME_REG = r'\b[A-Z][a-z]* [A-Z][a-z]*( [A-Z])?[A-Z][a-z]*( [A-Z])?[A-Z][a-z]*'
 
-        data_list = list(Data.split())
-        for item in data_list:
-            if ".com" in item or ".in" in item or ".org" in item or ".net" in item or ".co" \
-                    in item or ".us" in item or "github.io" in item and "@" in item:
-                urls.append(item)
+            data_list = list(Data.split())
+            for item in data_list:
+                if ".com" in item or ".in" in item or ".org" in item or ".net" in item or ".co" \
+                        in item or ".us" in item or "github.io" in item and "@" in item:
+                    urls.append(item)
 
-        try:
-            email_text = search_contact_and_email(Data, EMAIL_REG).group(0)
-        except AttributeError as attr:
-            email_text = "no email"
+            try:
+                email_text = search_contact_and_email(Data, EMAIL_REG).group(0)
+            except AttributeError as attr:
+                email_text = "no email"
 
-        try:
-            contact_text = search_contact_and_email(Data, Contact_REG).group(0)
-        except AttributeError as attr:
-            contact_text = "no_contact_number"
+            try:
+                contact_text = search_contact_and_email(Data, Contact_REG).group(0)
+            except AttributeError as attr:
+                contact_text = "no_contact_number"
 
-        try:
-            links_text = search_links(Data, Link_REG)
-        except AttributeError as attr:
-            links_text = "no_link_text"
+            try:
+                links_text = search_links(Data, Link_REG)
+            except AttributeError as attr:
+                links_text = "no_link_text"
 
-        try:
-            name_text = search_name_data(NAME_REG, Data)
-        except AttributeError as attr:
-            name_text = ["no_name_text"]
+            try:
+                name_text = search_name_data(NAME_REG, Data)
+            except AttributeError as attr:
+                name_text = ["no_name_text"]
 
-        try:
-            llink_text = urls
-        except len(llink_text) < 0:
-            llink_text = "urls"
+            try:
+                llink_text = urls
+            except len(llink_text) < 0:
+                llink_text = "urls"
 
-        redactions = [email_text, contact_text]
-        print(email_text, contact_text, links_text, name_text, llink_text)
+            redactions = [email_text, contact_text]
+            print(email_text, contact_text, links_text, name_text, llink_text),
 
-        try:
+
             redact(new_cv_path, redactions, links_text, name_text, llink_text, file_name)
-            os.remove("no_img_example.PDF")
+            os.remove("No_Img.pdf")
             print(f'{cv_path[9:]} has been redacted')
-        except:
-            print("pdf not redacted")
+
+
+    # except:
+    #
+    #
+    #         print("pdf not redacted")
+    #         os.remove(cv_path)
+    #         print("Faulty PDF Removed")
+
+
+
+
+
+
