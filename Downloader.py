@@ -28,7 +28,7 @@ for items in doc_list1:
 
 
 
-for name in doc_list1[1000:2000]:
+for name in doc_list1[2000:3000]:
 
     Name = (name[1:-1])
     base_url = "https://india.gaiusnetworks.com/test/"

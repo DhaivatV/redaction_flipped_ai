@@ -1,5 +1,4 @@
 import os
-import shutil
 from Compressor import compress
 #
 dirpath = r'20th_july_redacted2'
